@@ -42,7 +42,6 @@ namespace TodoApi.Controllers
         }
 
         // PUT: api/TodoItems/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTodoItem(long id, TodoItem todoItem)
         {
@@ -73,7 +72,6 @@ namespace TodoApi.Controllers
         }
 
         // POST: api/TodoItems
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<TodoItem>> PostTodoItem(TodoItem todoItem)
         {
@@ -100,13 +98,13 @@ namespace TodoApi.Controllers
             return NoContent();
         }
 
+        // GET: api/TodoItems/completed
         [HttpGet("completed")]
         public async Task<ActionResult<IEnumerable<TodoItem>>> GetCompletedItems()
         {
             var completedTodos = await _context.TodoItems
-        .Where(todo => todo.IsComplete)
-        .ToListAsync();
-
+                .Where(todo => todo.IsComplete)
+                .ToListAsync();
 
             return completedTodos;
         }
