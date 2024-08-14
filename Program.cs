@@ -12,9 +12,13 @@ var configuration = builder.Configuration;
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Add Database 
 builder.Services.AddDbContext<TodoContext>(opt =>
     opt.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+builder.Services.AddDbContext<UserContext>(opt =>
+    opt.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
+
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>
