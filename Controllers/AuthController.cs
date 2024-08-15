@@ -45,7 +45,7 @@ namespace TodoApi.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Ok("User created");
+            return Ok("Registration Successfull");
         }
 
         [HttpPost("login")]
