@@ -57,42 +57,73 @@ namespace TodoApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<TodoItem>> GetTodoItem(long id)
         {
-            var todoItem = await _context.TodoItems.FindAsync(id);
+            var username = User.Identity?.Name;
+            if (username == null)
+            {
+                return Unauthorized();
+            }
+
+            var user = await _context.Users
+                .Include(u => u.TodoItems)
+                .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
+
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+
+            var todoItem = user.TodoItems
+                .FirstOrDefault(todo => todo.Id == id);
 
             if (todoItem == null)
             {
-                return NotFound();
+                return NotFound("Todo item not found");
             }
 
-            return todoItem;
+            var todoItemDto = new TodoItemDto
+            {
+                Id = todoItem.Id,
+                Name = todoItem.Name,
+                IsComplete = todoItem.IsComplete
+            };
+
+            return Ok(todoItemDto);
         }
 
         // PUT: api/TodoItems/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutTodoItem(long id, TodoItem todoItem)
+        public async Task<IActionResult> PutTodoItem(long id, TodoItemDto todoItemDto)
         {
-            if (id != todoItem.Id)
+            var username = User.Identity?.Name;
+            if (username == null)
             {
-                return BadRequest();
+                return Unauthorized();
             }
 
+            var user = await _context.Users
+                .Include(u => u.TodoItems)
+                .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
+
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+
+            var todoItem = user.TodoItems.FirstOrDefault(item => item.Id == id);
+            if (todoItem == null)
+            {
+                return NotFound("Todo item not found");
+            }
+
+            // Update the properties of the todoItem with the values from the DTO
+            todoItem.Name = todoItemDto.Name;
+            todoItem.IsComplete = todoItemDto.IsComplete;
+
+            // Mark the entity as modified
             _context.Entry(todoItem).State = EntityState.Modified;
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!TodoItemExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            // Save changes to the database
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }
@@ -131,10 +162,28 @@ namespace TodoApi.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTodoItem(long id)
         {
-            var todoItem = await _context.TodoItems.FindAsync(id);
+
+            var username = User.Identity?.Name;
+            if (username == null)
+            {
+                return Unauthorized();
+            }
+
+            var user = await _context.Users
+                .Include(u => u.TodoItems)
+                .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
+
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+
+            var todoItem = user.TodoItems
+                .FirstOrDefault(todo => todo.Id == id);
+
             if (todoItem == null)
             {
-                return NotFound();
+                return NotFound("Todo item not found");
             }
 
             _context.TodoItems.Remove(todoItem);
@@ -147,16 +196,35 @@ namespace TodoApi.Controllers
         [HttpGet("completed")]
         public async Task<ActionResult<IEnumerable<TodoItem>>> GetCompletedItems()
         {
-            var completedTodos = await _context.TodoItems
+            var username = User.Identity?.Name;
+            if (username == null)
+            {
+                return Unauthorized();
+            }
+
+            // Include TodoItems when querying the user
+            var user = await _context.Users
+                .Include(u => u.TodoItems) // Load the related TodoItems
+                .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
+
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+
+            var todoItems = user.TodoItems.Select(item => new TodoItemDto
+            {
+                Id = item.Id,
+                Name = item.Name,
+                IsComplete = item.IsComplete
+            }).ToList();
+
+
+            var completedTodos = todoItems
                 .Where(todo => todo.IsComplete)
-                .ToListAsync();
+                .ToList();
 
-            return completedTodos;
-        }
-
-        private bool TodoItemExists(long id)
-        {
-            return _context.TodoItems.Any(e => e.Id == id);
+            return Ok(completedTodos);
         }
     }
 }
