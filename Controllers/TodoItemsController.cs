@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -15,18 +16,41 @@ namespace TodoApi.Controllers
     [ApiController]
     public class TodoItemsController : ControllerBase
     {
-        private readonly TodoContext _context;
+        private readonly UserContext _context;
 
-        public TodoItemsController(TodoContext context)
+        public TodoItemsController(UserContext context)
         {
             _context = context;
         }
 
-        // GET: api/TodoItems
+        // GET: api/TodoItem
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TodoItem>>> GetTodoItems()
+        public async Task<ActionResult<IEnumerable<TodoItemDto>>> GetTodoItems()
         {
-            return await _context.TodoItems.ToListAsync();
+            var username = User.Identity?.Name;
+            if (username == null)
+            {
+                return Unauthorized();
+            }
+
+            // Include TodoItems when querying the user
+            var user = await _context.Users
+                .Include(u => u.TodoItems) // Load the related TodoItems
+                .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
+
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+
+            var todoItems = user.TodoItems.Select(item => new TodoItemDto
+            {
+                Id = item.Id,
+                Name = item.Name,
+                IsComplete = item.IsComplete
+            }).ToList();
+
+            return Ok(todoItems);
         }
 
         // GET: api/TodoItems/5
@@ -75,13 +99,32 @@ namespace TodoApi.Controllers
 
         // POST: api/TodoItems
         [HttpPost]
-        public async Task<ActionResult<TodoItem>> PostTodoItem(TodoItem todoItem)
+        public async Task<ActionResult<TodoItemDto>> PostTodoItem(TodoItemDto todoItemDto)
         {
+            var username = User.Identity?.Name;
+            if (username == null)
+            {
+                return Unauthorized();
+            }
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
+
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+
+            var todoItem = new TodoItem
+            {
+                Name = todoItemDto.Name,
+                IsComplete = todoItemDto.IsComplete,
+                UserId = user.Id,
+            };
+
             _context.TodoItems.Add(todoItem);
             await _context.SaveChangesAsync();
 
-            // return CreatedAtAction("GetTodoItem", new { id = todoItem.Id }, todoItem);
-            return CreatedAtAction(nameof(GetTodoItem), new { id = todoItem.Id }, todoItem);
+            return CreatedAtAction(nameof(GetTodoItem), new { id = todoItem.Id }, todoItemDto);
         }
 
         // DELETE: api/TodoItems/5

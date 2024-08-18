@@ -13,9 +13,6 @@ var configuration = builder.Configuration;
 builder.Services.AddControllers();
 
 // Add Database 
-builder.Services.AddDbContext<TodoContext>(opt =>
-    opt.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
-
 builder.Services.AddDbContext<UserContext>(opt =>
     opt.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
 
