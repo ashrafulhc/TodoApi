@@ -212,19 +212,16 @@ namespace TodoApi.Controllers
                 return NotFound("User not found");
             }
 
-            var todoItems = user.TodoItems.Select(item => new TodoItemDto
+            var todoItems = user.TodoItems
+            .Where(todoItem => todoItem.IsComplete)
+            .Select(todoItem => new TodoItemDto
             {
-                Id = item.Id,
-                Name = item.Name,
-                IsComplete = item.IsComplete
+                Id = todoItem.Id,
+                Name = todoItem.Name,
+                IsComplete = todoItem.IsComplete
             }).ToList();
 
-
-            var completedTodos = todoItems
-                .Where(todo => todo.IsComplete)
-                .ToList();
-
-            return Ok(completedTodos);
+            return Ok(todoItems);
         }
     }
 }
